@@ -18,7 +18,7 @@ public class GameManager : MonoBehaviour
     public GameObject gameOverScreen;  // Reference to Game Over screen UI
     public GameObject blackOverlay;    // Reference to the black overlay panel
     private bool isGameOver = false;   // Track if the game is over
-    private MarioMovement marioMovement; // Reference to Mario's movement script
+    private PlayerMovement playerMovement; // Reference to Mario's movement script
 
     public float fallThreshold = -10f; // Threshold Y position to detect falling
     private Vector3 startingPosition;   // Mario's starting position
@@ -43,11 +43,11 @@ public class GameManager : MonoBehaviour
         UpdateUI();
         gameOverScreen.SetActive(false);
         blackOverlay.SetActive(false);
-        marioMovement = GameObject.FindWithTag("Player")?.GetComponent<MarioMovement>();
+        playerMovement = GameObject.FindWithTag("Player")?.GetComponent<PlayerMovement>();
 
-        if (marioMovement != null)
+        if (playerMovement != null)
         {
-            startingPosition = marioMovement.transform.position; // Store Mario's starting position
+            startingPosition = playerMovement.transform.position; // Store Mario's starting position
         }
     }
 
@@ -58,7 +58,7 @@ public class GameManager : MonoBehaviour
             RestartGame();
         }
 
-        if (!isGameOver && marioMovement != null && marioMovement.transform.position.y < fallThreshold)
+        if (!isGameOver && playerMovement != null && playerMovement.transform.position.y < fallThreshold)
         {
             PlayerHit(); // Trigger life loss if Mario falls too far
         }
@@ -76,7 +76,6 @@ public class GameManager : MonoBehaviour
         CheckForExtraLife(); // Check if coins reached 100 to grant extra life
     }
 
-
     private void CheckForExtraLife()
     {
         if (coins >= coinsPerLife)
@@ -86,6 +85,7 @@ public class GameManager : MonoBehaviour
             UpdateUI();
         }
     }
+
     public void PlayerHit()
     {
         if (lives > 1) // Mario still has lives left
@@ -107,9 +107,9 @@ public class GameManager : MonoBehaviour
         score = startingScore; // Reset score on game over
         UpdateUI();
 
-        if (marioMovement != null)
+        if (playerMovement != null)
         {
-            marioMovement.enabled = false;
+            playerMovement.enabled = false;
         }
 
         Time.timeScale = 0; // Freeze the game
@@ -124,10 +124,10 @@ public class GameManager : MonoBehaviour
         isGameOver = false;
         Time.timeScale = 1;
 
-        if (marioMovement != null)
+        if (playerMovement != null)
         {
-            marioMovement.enabled = true;
-            marioMovement.transform.position = startingPosition;
+            playerMovement.enabled = true;
+            playerMovement.transform.position = startingPosition;
         }
     }
 
@@ -147,9 +147,9 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1;
         blackOverlay.SetActive(false);
 
-        if (marioMovement != null)
+        if (playerMovement != null)
         {
-            marioMovement.transform.position = startingPosition;
+            playerMovement.transform.position = startingPosition;
         }
     }
 }

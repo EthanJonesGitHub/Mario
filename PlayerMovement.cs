@@ -1,69 +1,106 @@
 using UnityEngine;
 
-public class MarioMovement : MonoBehaviour
+public class PlayerMovement : MonoBehaviour
 {
-    public float walkSpeed = 6f;         // Normal walking speed for Mario's movement
-    public float runMultiplier = 1.3f;   // Lowered multiplier for Mario's speed when running
-    public float jumpForce = 10f;        // Force applied when Mario jumps
-    public float runJumpMultiplier = 1.1f; // Slight multiplier for jump force when running
-    private bool isGrounded;             // Check if Mario is on the ground
+    public float walkSpeed = 6f;
+    public float runMultiplier = 1.3f;
+    public float jumpForce = 10f;
+    public float runJumpMultiplier = 1.1f;
+    public GameObject fireballPrefab;
+    private bool hasFirePower = false;
 
-    private Rigidbody2D rb;              // Mario's Rigidbody2D component
-    private Animator animator;           // Animator for Mario's animations
+    private Rigidbody2D rb;
+    private Animator animator;
+    private bool isGrounded;
 
     void Start()
     {
-        rb = GetComponent<Rigidbody2D>();     // Access Rigidbody2D component
-        animator = GetComponent<Animator>();  // Access Animator component
+        rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
 
-        // Enable interpolation on the Rigidbody2D for smoother movement
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
+
+        // Ensure Mario is facing right by default
+        transform.localScale = new Vector3(1, 1, 1);
+
+        // Set initial speed to 0 to ensure idle animation plays
+        animator.SetFloat("Speed", 0);
     }
 
     void Update()
     {
-        // Determine if Mario is running by holding the "Fire3" button (mapped to X button)
         bool isRunning = Input.GetButton("Fire3");
         float currentSpeed = isRunning ? walkSpeed * runMultiplier : walkSpeed;
 
-        // Horizontal movement input (works with keyboard and gamepad joystick)
         float moveInput = Input.GetAxis("Horizontal");
 
-        // Apply horizontal movement only if Mario is grounded; otherwise, maintain existing momentum in the air
-        if (isGrounded)
+        // Apply horizontal movement
+        rb.linearVelocity = new Vector2(moveInput * currentSpeed, rb.linearVelocity.y);
+
+        // Flip Mario's sprite based on movement direction
+        if (moveInput != 0)
         {
-            rb.linearVelocity = new Vector2(moveInput * currentSpeed, rb.linearVelocity.y);
-        }
-        else
-        {
-            // Allow for slight air control while maintaining momentum
-            rb.linearVelocity = new Vector2(moveInput * walkSpeed, rb.linearVelocity.y);
+            transform.localScale = new Vector3(Mathf.Sign(moveInput), 1, 1);
         }
 
-        // Flip Mario's sprite based on direction
-        if (moveInput < 0)
-            transform.localScale = new Vector3(-1, 1, 1);
-        else if (moveInput > 0)
-            transform.localScale = new Vector3(1, 1, 1);
-
-        // Jumping logic (works with spacebar and A button on Xbox)
+        // Jumping logic
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
             float jumpStrength = isRunning ? jumpForce * runJumpMultiplier : jumpForce;
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpStrength);
-            isGrounded = false; // Set grounded to false when jumping
+            isGrounded = false;
         }
 
-        // Update animator parameters
+        // Update the Animator's Speed parameter based on movement
         animator.SetFloat("Speed", Mathf.Abs(moveInput * currentSpeed));
+
+        // Fireball shooting logic with "Fire3" button
+        if (hasFirePower && Input.GetButtonDown("Fire3"))
+        {
+            ShootFireball();
+        }
     }
 
-    // Check if Mario is grounded using collision
+    private void ShootFireball()
+    {
+        if (fireballPrefab == null)
+        {
+            Debug.LogError("Fireball Prefab is not assigned in the Inspector!");
+            return;
+        }
+
+        Vector2 fireballPosition = new Vector2(transform.position.x + (transform.localScale.x * 0.5f), transform.position.y);
+        GameObject fireball = Instantiate(fireballPrefab, fireballPosition, Quaternion.identity);
+
+        fireball.GetComponent<Fireball>().InitializeFireball(transform.localScale.x);
+    }
+
+    public void ActivateFirePower()
+    {
+        hasFirePower = true;
+        animator.SetBool("hasFirePower", true);
+    }
+
+    public void LoseFirePower()
+    {
+        hasFirePower = false;
+        animator.SetBool("hasFirePower", false);
+    }
+
     void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Ground") || collision.gameObject.CompareTag("Pipe"))
         {
-            isGrounded = true;  // Mario is grounded when colliding with ground objects
+            isGrounded = true;
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.CompareTag("FireFlower"))
+        {
+            ActivateFirePower();
+            Destroy(collision.gameObject);
         }
     }
 }
